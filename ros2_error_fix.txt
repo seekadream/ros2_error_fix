@@ -1,0 +1,201 @@
+一、第一个错误
+
+错误信息：
+  ModuleNotFoundError: No module named 'py01_topic.demo01_talker_str_py'
+
+错误原因：
+  源文件命名有误，文件名为 demo01_talker_str_py.py.py（双 .py 后缀），
+  导致 colcon build 安装后 python 无法找到对应模块。
+
+解决方法：
+  1. 将文件重命名为 demo01_talker_str_py.py（去掉多余的 .py）
+     mv src/py01_topic/py01_topic/demo01_talker_str_py.py.py src/py01_topic/py01_topic/demo01_talker_str_py.py
+  2. 重新编译：
+     colcon build --packages-select py01_topic
+  3. 重新 source 并运行：
+     . install/setup.bash && ros2 run py01_topic demo01_talker_str_py
+
+******************************************************************************************************************************************************
+
+二、第二个错误
+
+错误信息：
+  demo03_talker_stu_py.py 显示未存取 "Mydata"
+
+错误原因：
+  1. 文件中导入了 from message_interface.msg import Mydata，但代码中从未使用 Mydata，编辑器提示未存取。
+  2. Student 的导入路径错误，写成了 from message_interface.src.msg import Student，
+     正确的导入路径应为 from message_interface.msg import Student。
+     （虽然 Student.msg 定义在 src/msg/ 目录下，但 colcon build 后 Python 模块统一从 message_interface.msg 导出）
+
+解决方法：
+  1. 删除未使用的 Mydata 导入
+  2. 修正 Student 导入路径为 from message_interface.msg import Student
+  3. 重新编译：
+     colcon build --packages-select message_interface
+  4. 重新 source 并运行：
+     . install/setup.bash && ros2 run py01_topic demo03_talker_stu_py
+
+******************************************************************************************************************************************************
+
+三、第三个错误
+
+错误信息：
+  ros2 run py01_topic demo03_talker_stu_py
+  > No executable found
+
+错误原因：
+  setup.py 的 entry_points 中没有注册 demo03_talker_stu_py 的可执行入口，
+  只注册了 demo01_talker_str_py 和 demo02_listener_str_py，
+  ros2 run 找不到对应可执行文件。
+
+解决方法：
+  1. 在 setup.py 的 entry_points 中添加：
+     'demo03_talker_stu_py=py01_topic.demo03_talker_stu_py:main',
+  2. 另外文件第39行 rclpy.shutdown 缺少括号 ()，改为 rclpy.shutdown()
+  3. 重新编译：
+     colcon build --packages-select py01_topic
+  4. 重新 source 并运行：
+     . install/setup.bash && ros2 run py01_topic demo03_talker_stu_py
+
+******************************************************************************************************************************************************
+
+四、第四个错误
+
+错误信息：
+  AssertionError: The 'level' field must be of type 'int'
+  File ".../demo03_talker_stu_py.py", line 23, in timer_callback
+      mydata.level='A'
+
+错误原因：
+  Mydata.msg 中 level 字段定义为 char 类型，ROS2 将其映射为 Python int（0~255），
+  不能直接赋值字符串 'A'，必须使用 ord('A') 将其转为对应的 ASCII 码整数（65）。
+
+解决方法：
+  1. 将 mydata.level='A' 改为 mydata.level=ord('A')
+  2. 日志格式化字符串 mydata.level 对应 %s 改为 %c（显示为字符）
+  3. 重新编译：
+     colcon build --packages-select py01_topic
+  4. 重新 source 并运行：
+     . install/setup.bash && ros2 run py01_topic demo03_talker_stu_py
+
+******************************************************************************************************************************************************
+
+五、第五个错误
+
+错误信息：
+  TypeError: Expected <class 'message_interface.msg._student.Student'>, got <class 'message_interface.msg._mydata.Mydata'>
+  File ".../demo03_talker_stu_py.py", line 28, in timer_callback
+      self.publisher_.publish(mydata)
+
+错误原因：
+  第10行 self.publisher_=self.create_publisher(Student,'topic_stu',10) 创建的 publisher 只绑定 Student 类型，
+  但第28行却用它发布了 Mydata 类型的消息。ROS2 中一个 publisher 只能发布创建时指定的消息类型，不能混用。
+
+解决方法：
+  1. 删除 self.publisher_.publish(mydata) 这一行，mydata 对象保留仅用于日志输出。
+  2. 如需发布 Mydata，需单独创建第二个 publisher：
+     self.mydata_publisher_=self.create_publisher(Mydata,'topic_mydata',10)
+  3. 重新编译：
+     colcon build --packages-select py01_topic
+  4. 重新 source 并运行：
+     . install/setup.bash && ros2 run py01_topic demo03_talker_stu_py
+
+******************************************************************************************************************************************************
+
+六、第六个错误
+
+错误信息：
+  TypeError: Expected <class 'message_interface.msg._student.Student'>, got <class 'message_interface.msg._mydata.Mydata'>
+  File ".../demo03_talker_stu_py.py", line 29, in timer_callback
+      self.publisher_.publish(mydata)
+
+问题代码：
+        self.publisher_=self.create_publisher(Student,'topic_stu',10)          # 第10行，绑定 Student 类型
+        self.publisher_mydata=self.create_publisher(Mydata,'mydata',10)        # 第11行，绑定 Mydata 类型
+
+        self.publisher_.publish(stu)                                            # 第28行，正确
+        self.publisher_.publish(mydata)                                         # 第29行，错误！用了 Student 的 publisher 发 Mydata
+
+错误原因：
+  第10行已为 Student 创建了 publisher_，第11行已为 Mydata 创建了 publisher_mydata，
+  但第29行发布 mydata 时误用了 self.publisher_（Student 的 publisher），
+  应该用 self.publisher_mydata（Mydata 的 publisher）。
+
+解决方法：
+  1. 将第29行 self.publisher_.publish(mydata) 改为 self.publisher_mydata.publish(mydata)
+  2. 重新编译：
+     colcon build --packages-select py01_topic
+  3. 重新 source 并运行：
+     . install/setup.bash && ros2 run py01_topic demo03_talker_stu_py
+
+修复后代码：
+        self.publisher_.publish(stu)
+        self.publisher_mydata.publish(mydata)     # 用 Mydata 自己的 publisher
+
+******************************************************************************************************************************************************
+
+七、第七个错误
+
+错误信息：
+  TypeError: Node.create_subscription() takes 5 positional arguments but 6 were given
+  File ".../demo04_listener_stu_py.py", line 17, in __init__
+      self.subscription_mydata=self.create_subscription(Mydata,
+
+问题代码：
+        self.subscription_mydata=self.create_subscription(Mydata,
+                                                           'mydata',
+                                                           self,self.listener_callback,    # 多了一个 self
+                                                           10)
+
+错误原因：
+  create_subscription() 方法签名：create_subscription(msg_type, topic, callback, qos)
+  共4个参数（不含 self），但代码传了5个：Mydata, 'mydata', self, self.listener_callback, 10
+  其中 self 是多余的，它被当作第三个位置参数（callback）传入，导致参数数量超出。
+
+解决方法：
+  1. 删除多余的 self，改为 self.listener_callback：
+     self.subscription_mydata=self.create_subscription(Mydata,
+                                                        'mydata',
+                                                        self.listener_callback,
+                                                        10)
+  2. 重新编译：
+     colcon build --packages-select py01_topic
+
+******************************************************************************************************************************************************
+
+八、第八个错误
+
+错误信息：
+  TypeError: minimalsubscriber.listener_callback() missing 1 required positional argument: 'mydata'
+  File ".../demo04_listener_stu_py.py", line 22, in listener_callback
+
+问题代码：
+        self.subscription=self.create_subscription(Student, 'topic_stu',
+                                                    self.listener_callback, 10)
+        self.subscription_mydata=self.create_subscription(Mydata, 'mydata',
+                                                           self.listener_callback, 10)
+
+        def listener_callback(self,stu,mydata):    # 期望两个参数，但每次回调只收到一个
+
+错误原因：
+  ROS2 每个订阅独立触发回调，一次只传入一个消息。两个订阅都绑定到同一个需要两个参数的
+  listener_callback(self,stu,mydata)，当 Student 订阅触发时只传 stu（缺 mydata），
+  当 Mydata 订阅触发时只传 mydata（缺 stu），无论如何都会缺少参数。
+
+解决方法：
+  1. 拆分为两个独立的回调函数，各处理自己的消息类型：
+     self.subscription = self.create_subscription(Student, 'topic_stu',
+                                                   self.listener_callback_stu, 10)
+     self.subscription_mydata = self.create_subscription(Mydata, 'mydata',
+                                                          self.listener_callback_mydata, 10)
+
+     def listener_callback_stu(self, stu):
+         ...
+
+     def listener_callback_mydata(self, mydata):
+         ...
+  2. 重新编译：
+     colcon build --packages-select py01_topic
+
+******************************************************************************************************************************************************
