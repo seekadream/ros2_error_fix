@@ -199,3 +199,19 @@
      colcon build --packages-select py01_topic
 
 ******************************************************************************************************************************************************
+
+九、第九个错误
+
+错误信息：
+  ros2 pkg create py03_action --build-type ament_python --denpendencies rcply base_inferface_demo message_interface
+  ros2: error: unrecognized arguments: --denpendencies rcply base_inferface_demo message_interface
+
+错误原因：
+  拼写错误：
+  1. --denpendencies 应为 --dependencies
+  2. rcply 应为 rclpy
+
+解决方法：
+  ros2 pkg create py03_action --build-type ament_python --dependencies rclpy base_inferface_demo message_interface
+
+******************************************************************************************************************************************************
