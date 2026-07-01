@@ -260,7 +260,7 @@
 
 十二、第十二个错误
 
-错误信息：
+错误信息（第一次）：
   Traceback (most recent call last):
     File ".../demo02_client_py", line 33, in <module>
       sys.exit(load_entry_point('py02-service==0.0.0', 'console_scripts', 'demo02_client_py')())
@@ -279,11 +279,23 @@
                                                             sys.argv[2],
                                                             sys.argv[3])
 
-解决方法：
-  将 4 个参数放入一个元组中进行格式化：
+第一次修复：
+  将 4 个参数放入一个元组中：
   self.get_logger().info('argv:---1.%s  2.%s  3.%s  4%s' % (sys.argv[0], sys.argv[1], sys.argv[2], sys.argv[3]))
 
-修复后代码：
-  self.get_logger().info('argv:---1.%s  2.%s  3.%s  4%s' % (sys.argv[0], sys.argv[1], sys.argv[2], sys.argv[3]))
+错误信息（第二次修复后运行）：
+  ros2 run py02_service demo02_client_py 100.10 100.20
+  File ".../demo02_client_py.py", line 22, in send_request
+    self.get_logger().info('argv:---1.%s  2.%s  3.%s  4%s' % (sys.argv[0], sys.argv[1], sys.argv[2]))
+  TypeError: not enough arguments for format string
+
+错误原因：
+  第二次运行时只传了 2 个命令行参数（100.10 100.20）+ 程序名，
+  sys.argv 共有 3 个元素 [程序名, 100.10, 100.20]，索引为 0、1、2，
+  但格式字符串有 4 个 %s 占位符，而元组中只有 3 个值，仍然不匹配。
+
+最终修复：
+  将占位符数量与实际参数个数对齐，改为 3 个 %s：
+  self.get_logger().info('argv:---1.%s  2.%s  3.%s' % (sys.argv[0], sys.argv[1], sys.argv[2]))
 
 ******************************************************************************************************************************************************
