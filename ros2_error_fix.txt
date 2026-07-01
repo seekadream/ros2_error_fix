@@ -299,3 +299,42 @@
   self.get_logger().info('argv:---1.%s  2.%s  3.%s' % (sys.argv[0], sys.argv[1], sys.argv[2]))
 
 ******************************************************************************************************************************************************
+
+十三、第十三个错误
+
+错误信息：
+  Traceback (most recent call last):
+    File ".../demo02_client_py", line 33, in <module>
+      sys.exit(load_entry_point(...)())
+    File ".../demo02_client_py.py", line 31, in main
+      minimal_client.send_request(10.9,18.9)
+  TypeError: minimalclient.send_request() takes 1 positional argument but 3 were given
+
+错误原因：
+  send_request(self) 定义时没有参数（只有 self），
+  但 main() 中调用时传了 2 个参数：send_request(10.9, 18.9)，
+  Python 自动传入 self 后共收到 3 个参数，而定义只接受 1 个（self），导致参数数量不匹配。
+
+问题代码：
+  def send_request(self):
+      self.req.num1=float(sys.argv[1])
+      self.req.num2=float(sys.argv[2])
+
+  def main():
+      ...
+      minimal_client.send_request(10.9,18.9)
+
+解决方法：
+  1. 为 send_request 增加两个形参 a, b，直接使用传入的值而非从 sys.argv 读取。
+  2. 移除 sys.argv 相关代码，日志改用 a, b 输出。
+
+修复后代码：
+  def send_request(self, a, b):
+      self.req.num1=a
+      self.req.num2=b
+
+  def main():
+      ...
+      minimal_client.send_request(10.9,18.9)
+
+******************************************************************************************************************************************************
