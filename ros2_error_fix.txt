@@ -229,6 +229,61 @@
   1. 创建时指定许可证：
      ros2 pkg create py03_action --build-type ament_python --dependencies rclpy --license "Apache-2.0"
   2. 或创建后修改 package.xml：
-     将 <license>TODO: License declaration</license> 改为 <license>Apache-2.0</license>
+      将 <license>TODO: License declaration</license> 改为 <license>Apache-2.0</license>
+
+******************************************************************************************************************************************************
+
+十一、第十一个错误
+
+错误信息：
+  ERROR:colcon.colcon_ros.task.ament_python.build:Failed to find the following files:
+  - /home/pi/zy/ws01_plumbing/install/base_inferface_demo/share/base_inferface_demo/package.sh
+  Check that the following packages have been built:
+  - base_inferface_demo
+  Failed <<< py03_action [0.01s, exited with code 1]
+
+错误原因：
+  py03_action 的 package.xml 中声明了 <depend>base_inferface_demo</depend>，
+  但运行 colcon build 时没有先构建 base_inferface_demo 及其依赖（如 message_interface），
+  导致 base_inferface_demo 在 install 目录下的产物缺失。
+
+解决方法：
+  1. 使用 --packages-up-to 构建，会自动先构建所有依赖：
+     colcon build --packages-up-to py03_action
+  2. 如果只想构建单个包，先单独构建它的所有依赖：
+     colcon build --packages-select base_inferface_demo message_interface
+     colcon build --packages-select py03_action
+  3. 或直接全量构建所有包：
+     colcon build
+
+******************************************************************************************************************************************************
+
+十二、第十二个错误
+
+错误信息：
+  Traceback (most recent call last):
+    File ".../demo02_client_py", line 33, in <module>
+      sys.exit(load_entry_point('py02-service==0.0.0', 'console_scripts', 'demo02_client_py')())
+    File ".../demo02_client_py.py", line 22, in send_request
+      self.get_logger().info('argv:---1.%s  2.%s  3.%s  4%s' % sys.argv[0],
+  TypeError: not enough arguments for format string
+
+错误原因：
+  第22行字符串格式化使用了 4 个 %s 占位符，但 % 运算符后只跟了 sys.argv[0] 一个值，
+  sys.argv[1]、sys.argv[2]、sys.argv[3] 被错误地写在了 info() 的额外参数位置，
+  而非格式化元组中，导致参数数量不匹配。
+
+问题代码：
+  self.get_logger().info('argv:---1.%s  2.%s  3.%s  4%s' % sys.argv[0],
+                                                            sys.argv[1],
+                                                            sys.argv[2],
+                                                            sys.argv[3])
+
+解决方法：
+  将 4 个参数放入一个元组中进行格式化：
+  self.get_logger().info('argv:---1.%s  2.%s  3.%s  4%s' % (sys.argv[0], sys.argv[1], sys.argv[2], sys.argv[3]))
+
+修复后代码：
+  self.get_logger().info('argv:---1.%s  2.%s  3.%s  4%s' % (sys.argv[0], sys.argv[1], sys.argv[2], sys.argv[3]))
 
 ******************************************************************************************************************************************************
