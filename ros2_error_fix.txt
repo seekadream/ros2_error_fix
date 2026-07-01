@@ -215,3 +215,20 @@
   ros2 pkg create py03_action --build-type ament_python --dependencies rclpy base_inferface_demo message_interface
 
 ******************************************************************************************************************************************************
+
+十、第十个错误
+
+错误信息：
+  [WARNING]: Unknown license 'TODO: License declaration'. This has been set in the package.xml, but no LICENSE file has been created.
+
+错误原因：
+  ros2 pkg create 默认将 package.xml 中的 license 设为占位符 'TODO: License declaration'，
+  不是有效的开源许可证声明。
+
+解决方法：
+  1. 创建时指定许可证：
+     ros2 pkg create py03_action --build-type ament_python --dependencies rclpy --license "Apache-2.0"
+  2. 或创建后修改 package.xml：
+     将 <license>TODO: License declaration</license> 改为 <license>Apache-2.0</license>
+
+******************************************************************************************************************************************************
