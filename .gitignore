@@ -1,0 +1,12 @@
+build/
+install/
+log/
+src/
+.vscode/
+compile_commands.json
+__pycache__/
+*.pyc
+*.swp
+*.swo
+*~
+.DS_Store
