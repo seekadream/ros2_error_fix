@@ -328,7 +328,7 @@
   1. 为 send_request 增加两个形参 a, b，直接使用传入的值而非从 sys.argv 读取。
   2. 移除 sys.argv 相关代码，日志改用 a, b 输出。
 
-修复后代码：
+  修复后代码：
   def send_request(self, a, b):
       self.req.num1=a
       self.req.num2=b
@@ -336,5 +336,56 @@
   def main():
       ...
       minimal_client.send_request(10.9,18.9)
+
+******************************************************************************************************************************************************
+
+十四、第十四个错误（warning）
+
+错误信息：
+  WARNING:colcon.colcon_core.package_selection:Some selected packages are already built in one or more underlay workspaces:
+          'message_interface' is in: /home/pi/zy/ws01_plumbing/install/message_interface
+
+错误原因：
+  当前工作空间（ws01_plumbing）中 `message_interface` 之前已被 `colcon build` 构建过，
+  install/ 目录下已有该包的产物。再次 `colcon build` 时，colcon 检测到 overlay（新构建）
+  将覆盖 underlay（已有构建产物），发出警告提示可能存在 API/ABI 兼容性风险。
+
+解决方法：
+  1. 如果确定要覆盖（如修改了 msg/srv/action 接口后重新构建），加参数忽略警告：
+     colcon build --allow-overriding message_interface
+  2. 如果不需要保留旧构建产物，先清理再构建：
+     rm -rf install/message_interface build/message_interface
+     colcon build
+  3. 彻底清理整个工作空间：
+     rm -rf install build log
+     colcon build
+
+  注意：修改了 .msg/.srv/.action 文件后必须覆盖旧版本，否则依赖它的包仍链接旧接口，
+       可能导致运行时类型不匹配。
+
+******************************************************************************************************************************************************
+
+十五、第十五个错误
+
+错误信息：
+  RuntimeError: 'distutils.core.setup()' was never called -- perhaps 'setup.py' is not a Distutils setup script?
+  File ".../setup.py", line 1, in <module>
+      from setuptools import find_packages, setup
+  ...
+  subprocess.CalledProcessError: Command '['/usr/bin/python3', '-c',
+      'from distutils.core import run_setup;dist = run_setup("setup.py", ...)'
+  ]' returned non-zero exit status 1.
+
+错误原因：
+  setup.py 第27行 entry_points 中的模块路径使用了 / 而非 .：
+      'demo01_action_server_py=py03_action/demo01_action_server_py:main'   ← 错误
+  setuptools 解析 entry_point 时遇到非法格式，setup() 执行失败，
+  导致 colcon 通过 distutils.core.run_setup() 检测 setup.py 时报告 setup() 未被调用。
+
+解决方法：
+  1. 将 entry_points 中的路径分隔符 / 改为 .：
+     'demo01_action_server_py=py03_action.demo01_action_server_py:main'   ← 正确
+  2. 重新编译：
+     colcon build --packages-select py03_action
 
 ******************************************************************************************************************************************************
